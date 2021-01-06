@@ -20,7 +20,7 @@ static void module_load_event(void *drcontext, const module_data_t *mod, bool lo
 {
 	app_pc towrap = (app_pc) dr_get_proc_address(mod->handle, "malloc");
 
-	if (towrap != NULL && !strstr("libc", mod->names.file_name))
+	if (towrap != NULL && strstr("libc", mod->names.file_name))
 	{
 		bool ok = drwrap_wrap(towrap, wrap_pre, wrap_post);
 		if (ok)
@@ -48,6 +48,24 @@ event_instruction(void *drcontext, void *tag, instrlist_t *bb, instr_t *instr,
 //							  offsetof(per_thread_t, num_indirect_calls));
 //	} else if (instr_is_return(instr)) {
 //		insert_counter_update(drcontext, bb, instr, offsetof(per_thread_t, num_returns));
+		byte val[8];
+		dr_mcontext_t mcontext;
+		mcontext.size = sizeof(mcontext);
+		mcontext.flags = DR_MC_ALL;
+
+		dr_get_mcontext(drcontext, &mcontext);
+		reg_get_value_ex(DR_REG_RDI, &mcontext, val);
+		dr_fprintf(STDOUT, "RDI : 0x%llX\n", *val);
+		reg_get_value_ex(DR_REG_RSI, &mcontext, val);
+		dr_fprintf(STDOUT, "RSI : 0x%llX\n", *val);
+		reg_get_value_ex(DR_REG_RDX, &mcontext, val);
+		dr_fprintf(STDOUT, "RDX : 0x%llX\n", *val);
+		reg_get_value_ex(DR_REG_RCX, &mcontext, val);
+		dr_fprintf(STDOUT, "RCX : 0x%llX\n", *val);
+		reg_get_value_ex(DR_REG_R8, &mcontext, val);
+		dr_fprintf(STDOUT, "R8 : 0x%llX\n", *val);
+		reg_get_value_ex(DR_REG_R9, &mcontext, val);
+		dr_fprintf(STDOUT, "R9 : 0x%llX\n", *val);
 		instr_disassemble(drcontext, instr, STDOUT);
 		dr_fprintf(STDOUT, "\n");
 	}
@@ -87,7 +105,7 @@ DR_EXPORT void dr_client_main(client_id_t id, int argc, const char *argv[])
 	drmgr_init();
 	drwrap_init();
 	dr_register_exit_event(event_exit);
-	drmgr_register_module_load_event(module_load_event);
+	//drmgr_register_module_load_event(module_load_event);
 	//drmgr_register_bb_instrumentation_event(event_bb_analysis, NULL, NULL);
 	drmgr_register_bb_instrumentation_event(NULL, event_instruction, NULL);
 	mod_lock = dr_mutex_create();
